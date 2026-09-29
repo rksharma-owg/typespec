@@ -1,0 +1,83 @@
+name: Python contribution preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: Full fork commit SHA to validate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.target_sha }}
+      - name: Verify target SHA
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+        run: test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+      - uses: ./.github/actions/setup
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pnpm install
+      - name: Setup Python generator
+        working-directory: packages/http-client-python
+        run: |
+          npm install --ignore-scripts --package-lock=false
+          npm run setup
+          venv/bin/python eng/scripts/setup/prepare.py
+      - name: Regenerate
+        working-directory: packages/http-client-python
+        run: npm run regenerate
+      - name: Check generated files
+        working-directory: packages/http-client-python
+        run: npm run check-unstaged
+      - name: Generator and emitter tests
+        working-directory: packages/http-client-python
+        run: |
+          npm run test:emitter
+          npm run test:generator -- --env=ci
+      - name: Lint and format
+        working-directory: packages/http-client-python
+        run: |
+          npm run lint
+          pnpm --dir ../.. --filter "@typespec/prettier-plugin-typespec..." run build
+          npm run format:check
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Enable Git long paths
+        run: git config --system core.longpaths true
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.target_sha }}
+      - name: Verify target SHA
+        shell: bash
+        env:
+          TARGET_SHA: ${{ inputs.target_sha }}
+        run: test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+      - uses: ./.github/actions/setup
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pnpm install
+      - name: Setup Python generator
+        working-directory: packages/http-client-python
+        run: |
+          npm install --ignore-scripts --package-lock=false
+          npm run setup
+          .\venv\Scripts\python.exe eng\scripts\setup\prepare.py
+      - name: Regenerate
+        working-directory: packages/http-client-python
+        run: npm run regenerate
+      - name: Python generator tests
+        working-directory: packages/http-client-python
+        run: npm run test:generator -- --env=test
