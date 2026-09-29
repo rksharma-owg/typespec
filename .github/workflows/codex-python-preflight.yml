@@ -39,6 +39,9 @@ jobs:
       - name: Check generated files
         working-directory: packages/http-client-python
         run: npm run check-unstaged
+      - name: Enum serializer regression
+        working-directory: packages/http-client-python
+        run: venv/bin/python -m tox -c tests/tox.ini -e unittest -- -k enum_docstrings
       - name: Generator and emitter tests
         working-directory: packages/http-client-python
         run: |
@@ -78,6 +81,9 @@ jobs:
       - name: Regenerate
         working-directory: packages/http-client-python
         run: npm run regenerate
+      - name: Enum serializer regression
+        working-directory: packages/http-client-python
+        run: .\venv\Scripts\python.exe -m tox -c tests\tox.ini -e unittest -- -k enum_docstrings
       - name: Python generator tests
         working-directory: packages/http-client-python
         run: npm run test:generator -- --env=test
