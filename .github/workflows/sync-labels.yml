@@ -19,6 +19,7 @@ permissions:
 
 jobs:
   sync:
+    if: github.repository == 'microsoft/typespec'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -31,3 +32,15 @@ jobs:
         name: Sync labels
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  sync-fork:
+    if: github.repository == 'rksharma-owg/typespec'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Copy missing upstream labels while preserving fork labels
+        run: gh label clone microsoft/typespec --repo "$GH_REPO"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
